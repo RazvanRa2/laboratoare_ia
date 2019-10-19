@@ -16,10 +16,14 @@ RED, BLUE = 1, 2
 name = ["", "ROȘU", "ALBASTRU", "REMIZĂ"]
 
 # Funcție ce întoarce o stare inițială
+
+
 def init_state():
     return ([[0 for row in range(HEIGHT)] for col in range(WIDTH)], RED)
 
 # Funcție ce afișează o stare
+
+
 def print_state(state):
     for row in range(HEIGHT-1, -1, -1):
         ch = " RA"
@@ -27,6 +31,7 @@ def print_state(state):
         print("|" + "".join(l) + "|")
     print("+" + "".join("-" * WIDTH) + "+")
     print("Urmează: %d - %s" % (state[NEXT_PLAYER], name[state[NEXT_PLAYER]]))
+
 
 # Se afișează starea inițială a jocului
 print("Starea inițială:")
@@ -36,22 +41,21 @@ print_state(init_state())
 
 
 def get_available_actions(state):
-    board, player = state
-    emptyColumns = [False] * WIDTH
-    for i in range(0, HEIGHT):
-        if 0 in board[i]:
-            emptyColumns[i] = True
-    
+    # TODO <1>
     result = []
-    for i in range (WIDTH):
-        if emptyColumns[i]:
-            result.append(i)
-    return result  # TODO
+    for col in range(WIDTH):
+        if 0 in state[BOARD][col]:
+            result.append(col)
+
+    return result
 
 
 # Funcție ce întoarce starea în care se ajunge prin aplicarea unei acțiuni
 
 def apply_action(state, action):
+    if action >= len(state[BOARD]) or 0 not in state[BOARD][action]:
+        print("Action " + str(action) + " is not valid.")
+        return None
     new_board = deepcopy(state[BOARD])
     new_board[action][new_board[action].index(0, 0)] = state[NEXT_PLAYER]
     return (new_board, 3 - state[NEXT_PLAYER])
@@ -62,8 +66,9 @@ somestate = reduce(apply_action, [3, 4, 3, 2, 2, 6, 3, 3, 3, 3], init_state())
 print_state(somestate)
 get_available_actions(somestate)
 
-
 # Funcție ce verifică dacă o stare este finală
+
+
 def is_final(state):
     # Verificăm dacă matricea este plină
     if not any([0 in col for col in state[BOARD]]):
@@ -72,24 +77,24 @@ def is_final(state):
     player = 3 - state[NEXT_PLAYER]
 
     def ok(pos): return all([state[BOARD][c][r] == player for (r, c) in pos])
-    # Verificăm verticale
+    # Verificăm orizontale
     for row in range(HEIGHT):
         for col in range(WIDTH - 4):
             if ok([(row, col + i) for i in range(4)]):
                 return player
-    # Verificăm orizontale
+    # Verificăm verticale
     for col in range(WIDTH):
-        for row in range(HEIGHT-4):
+        for row in range(HEIGHT - 4):
             if ok([(row + i, col) for i in range(4)]):
                 return player
     # Verificăm diagonale
-    for col in range(WIDTH-4):
-        for row in range(HEIGHT-4):
-            if ok([(row + i, col+i) for i in range(4)]):
+    for col in range(WIDTH - 4):
+        for row in range(HEIGHT - 4):
+            if ok([(row + i, col + i) for i in range(4)]):
                 return player
     for col in range(WIDTH-4):
         for row in range(HEIGHT-4):
-            if ok([(row + i, col+4-i) for i in range(4)]):
+            if ok([(row + i, col + 4 - i) for i in range(4)]):
                 return player
     return False
 
@@ -145,10 +150,23 @@ CP = 1.0 / sqrt(2.0)
 
 def select_action(node, c=CP):
     N_node = node[N]
+
+    slectedAction = -1
+    maximumScore = -1
+    
     # TODO <2>
     # Se caută acțiunea a care maximizează expresia:
     # Q_a / N_a  +  c * sqrt(2 * log(N_node) / N_a)
-    return None  # TODO
+    for action in node[ACTIONS]:
+        q_action = node[ACTIONS][action][Q]
+        n_action = node[ACTIONS][action][N]
+        
+        actionScore = q_action / n_action + c * sqrt(2 * log(N_node) / n_action)
+        
+        if actionScore > maximumScore:
+            maximumScore = actionScore
+            slectedAction = action
+    return slectedAction
 
 
 # Scurtă testare
@@ -159,21 +177,24 @@ test_root[ACTIONS][5] = {N: 2, Q: 0.1, PARENT: test_root, ACTIONS: {}}
 print(select_action(test_root, CP))  # ==> 5 (0.8942 < 0.9965)
 print(select_action(test_root, 0.3))  # ==> 3 (0.50895 > 0.45157)
 
-
 # Algoritmul MCTS (UCT)
 #  state0 - starea pentru care trebuie aleasă o acțiune
 #  budget - numărul de iterații permis
 #  tree - un arbore din explorările anterioare
 #  opponent_s_action - ultima acțiune a adversarului
 
+
 def mcts(state0, budget, tree, opponent_s_action=None):
     # TODO <3>
     # DACĂ există un arbore construit anterior ȘI
     #   acesta are un copil ce corespunde ultimei acțiuni a adversarului,
-    # ATUNCI acel copil va deveni nodul de început pentru algoritm.
+    if tree is not None and opponent_s_action in tree[ACTIONS]:
+        # ATUNCI acel copil va deveni nodul de început pentru algoritm.
+        tree = tree[ACTIONS][opponent_s_action]
+    
     # ALTFEL, arborele de start este un nod gol.
-
-    tree = None  # TODO
+    else:
+        tree = init_node()
 
     #---------------------------------------------------------------
 
@@ -183,27 +204,45 @@ def mcts(state0, budget, tree, opponent_s_action=None):
         node = tree
 
         # TODO <4>
-        # Coborâm în arbore până când ajungem la o stare finală
-        # sau la un nod cu acțiuni neexplorate.
-        # Variabilele state și node se 'mută' împreună.
-        state = state  # TODO
-        node = node  # TODO
+        while True:
+            # Coborâm în arbore până când ajungem la o stare finală
+            # sau la un nod cu acțiuni neexplorate.
+            possibleActions = get_available_actions(state)
 
+            if is_final(state) or len(possibleActions) > len(node[ACTIONS]):
+                break
+
+            selectedAction = select_action(node)
+            node = node[ACTIONS][selectedAction]
+            state = apply_action(state, selectedAction)
         #---------------------------------------------------------------
 
         # TODO <5>
         # Dacă am ajuns într-un nod care nu este final și din care nu s-au
         # `încercat` toate acțiunile, construim un nod nou.
         if not is_final(state):
-            state = state  # TODO
-            node = node  # TODO
+            actions = get_available_actions(state)
+            notMadeBeforeActions = []
+
+            for action in actions:
+                if action not in node[ACTIONS]:
+                    notMadeBeforeActions.append(action)
+
+            chosenAction = choice(notMadeBeforeActions)
+
+            new_node = init_node(node)
+            node[ACTIONS][chosenAction] = new_node
+
+            node = new_node
+            state = apply_action(state, chosenAction)
+
         #---------------------------------------------------------------
 
         # TODO <6>
         # Se simulează o desfășurare a jocului până la ajungerea într-o
         # starea finală. Se evaluează recompensa în acea stare.
         while not is_final(state):
-            break
+            state = apply_action(state, choice(get_available_actions(state)))
 
         winner = is_final(state)
         if winner == state0[NEXT_PLAYER]:
@@ -217,12 +256,14 @@ def mcts(state0, budget, tree, opponent_s_action=None):
         #---------------------------------------------------------------
 
         # TODO <7>
+
         # Se actualizează toate nodurile de la node către rădăcină:
-        #  - se incrementează valoarea N din fiecare nod
-        #  - se adaugă recompensa la valoarea Q
-
-        # TODO
-
+        while node:
+            #  - se incrementează valoarea N din fiecare nod
+            node[N] += 1
+            #  - se adaugă recompensa la valoarea Q
+            node[Q] += reward
+            node = node[PARENT]
         #---------------------------------------------------------------
 
     if tree:
@@ -239,3 +280,46 @@ def mcts(state0, budget, tree, opponent_s_action=None):
 print(action)
 if tree:
     print_tree(tree[PARENT])
+
+
+def play_games(games_no, budget1, budget2, verbose=False):
+    # Efortul de căutare al jucătorilor
+    budget = [budget1, budget2]
+
+    score = {p: 0 for p in name}
+
+    for i in range(games_no):
+        # Memoriile inițiale
+        memory = [None, None]
+
+        # Se desfășoară jocul
+        state = init_state()
+        last_action = None
+
+        while state and not is_final(state):
+            p = state[NEXT_PLAYER] - 1
+            (action, memory[p]) = mcts(
+                state, budget[p], memory[p], last_action)
+            state = apply_action(state, action)
+            last_action = action
+
+        # Cine a câștigat?
+        if(state):
+            winner = is_final(state)
+            score[name[winner]] += + 1
+
+        # Afișăm
+        if verbose and state:
+            print_state(state)
+            if winner == 3:
+                print("Remiză.")
+            else:
+                print("A câștigat %s" % name[winner])
+
+    # Afișează scorul final
+    print("Scor final: %s." % (str(score)))
+
+
+# play_games(N, BR, BA, VERBOSE) - rulează N jocuri, cu bugetele BR pt ROȘU și BA pt ALBASTRU
+#play_games(5, 2, 30, True)  # ne așteptăm să câștige ALBASTRU
+play_games(5, 30, 2, True) # ne așteptăm să câștige ROȘU
