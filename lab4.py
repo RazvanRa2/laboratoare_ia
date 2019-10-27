@@ -209,7 +209,12 @@ def mcts(state0, budget, tree, opponent_s_action=None):
             # sau la un nod cu acțiuni neexplorate.
             possibleActions = get_available_actions(state)
 
-            if is_final(state) or len(possibleActions) > len(node[ACTIONS]):
+            availableActionsFlag = False
+            for action in possibleActions:
+                if action not in node[ACTIONS]:
+                    availableActionsFlag = True
+
+            if is_final(state) or availableActionsFlag is True:
                 break
 
             selectedAction = select_action(node)
@@ -320,6 +325,5 @@ def play_games(games_no, budget1, budget2, verbose=False):
     print("Scor final: %s." % (str(score)))
 
 
-# play_games(N, BR, BA, VERBOSE) - rulează N jocuri, cu bugetele BR pt ROȘU și BA pt ALBASTRU
 #play_games(5, 2, 30, True)  # ne așteptăm să câștige ALBASTRU
 play_games(5, 30, 2, True) # ne așteptăm să câștige ROȘU
