@@ -250,8 +250,6 @@ test_batch(2, globals())
 # Unifică formulele f1 și f2, sub o substituție existentă subst.
 # Rezultatul unificării este o substituție (dicționar nume-variabilă -> termen),
 #  astfel încât dacă se aplică substituția celor două formule, rezultatul este identic.
-
-
 def unify(s, t, subst=None):
     if subst is None:
         subst = {}
