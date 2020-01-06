@@ -101,9 +101,37 @@ def gTFT(information):
     if tftRes == D:
         tftcnt += 1
 
-        if (tftcnt % 10 == 0):
+        if (tftcnt % 5 == 0):
             return C
     
+    return tftRes
+
+eviltftcnt = 1
+def evilTFT(information):
+    global eviltftcnt
+
+    tftRes = TFT(information)
+
+    if tftRes == C:
+        eviltftcnt += 1
+
+        if (eviltftcnt % 20 == 0):
+            return D
+    
+    return tftRes
+
+tftBetrayed = False
+def activEvilTFT(information):
+    global tftBetrayed
+
+    tftRes = TFT(information)
+
+    if tftRes == D:
+        tftBetrayed = True
+
+    if tftBetrayed == True:
+        return Joss(information)
+        
     return tftRes
 
 # TODO de activat strategiile aici
@@ -113,9 +141,11 @@ availableStrategies = [
     ('Tit-For-Tat', TFT),
     ('Joss', Joss),
     ('Tester', Tester),
-    ('Lucifer', Tester),
-    ('MRS', MassiveRetaliatoryStrike),
-    ('Generous TFT', gTFT)
+    #('Lucifer', Tester),
+    #('MRS', MassiveRetaliatoryStrike),
+    #('Generous TFT', gTFT),
+    #('Evil TFT', evilTFT),
+    ('Activatable Evil TFT', activEvilTFT)
 ]
 
 strategies = []
